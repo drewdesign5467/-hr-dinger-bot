@@ -4,7 +4,6 @@ import statsapi
 import pybaseball as pyb
 from datetime import date, timedelta
 import os
-import pandas as pd
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -16,7 +15,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 @bot.event
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
-    print("Loading Statcast data for dynamic HR predictions...")
+    print("Attempting to load live Statcast data...")
 
 EMOJI_LEGEND = {
     "💥": "Raw Power / Hard Contact",
@@ -33,8 +32,8 @@ async def info(ctx):
     for emoji, meaning in EMOJI_LEGEND.items():
         embed.add_field(name=emoji, value=meaning, inline=False)
     embed.add_field(
-        name="📌 Lineup Note",
-        value="Candidates are ranked using real Statcast data (barrel%, exit velo, platoon, park).\nRun !hrtoday again closer to first pitch for updated candidates when lineups drop.",
+        name="📌 How the bot works",
+        value="Uses live Statcast data (barrel%, exit velo, platoon) when available.\nOn Opening Day it falls back to strong candidates until data loads.",
         inline=False
     )
     await ctx.send(embed=embed)
@@ -55,16 +54,17 @@ def get_hr_candidates(game):
     home = game.get('home_name', 'TBD')
     lines = [f"**{away} @ {home}**"]
 
-    # Fetch fresh Statcast batting stats (current season)
     try:
-        stats = pyb.batting_stats(date.today().year, qual=50)  # min 50 plate appearances
-        stats = stats[['player_name', 'team', 'barrel_percent', 'exit_velocity', 'hard_hit_percent', 'hr', 'pa']]
+        # Try live Statcast data
+        stats = pyb.batting_stats(date.today().year, qual=1)  # lowered qual for early season
+        stats = stats[['player_name', 'team', 'barrel_percent', 'exit_velocity', 'hard_hit_percent']]
         stats = stats.sort_values(by='barrel_percent', ascending=False)
+        data_loaded = True
     except:
-        lines.append("⚠️ Could not load Statcast data right now.")
-        return "\n".join(lines)
+        stats = None
+        data_loaded = False
 
-    # Simple team name mapping for 2026 rosters (pybaseball uses standard abbreviations)
+    # Team abbreviation mapping
     team_map = {
         "White Sox": "CHW", "Brewers": "MIL", "Twins": "MIN", "Orioles": "BAL",
         "Red Sox": "BOS", "Reds": "CIN", "Dodgers": "LAD", "Pirates": "PIT",
@@ -77,23 +77,29 @@ def get_hr_candidates(game):
     away_abbr = team_map.get(away.split()[-1], away)
     home_abbr = team_map.get(home.split()[-1], home)
 
-    # Top 3 from away team
-    away_cands = stats[stats['team'] == away_abbr].head(3)
+    # Away team
     lines.append("**Away Side:**")
-    if away_cands.empty:
-        lines.append("No strong Statcast candidates yet.")
+    if data_loaded and stats is not None:
+        away_cands = stats[stats['team'] == away_abbr].head(3)
+        if not away_cands.empty:
+            for _, p in away_cands.iterrows():
+                lines.append(f"💥 {p['player_name']} - Barrel% {p['barrel_percent']:.1f}%")
+        else:
+            lines.append("No strong Statcast candidates yet.")
     else:
-        for _, p in away_cands.iterrows():
-            lines.append(f"💥 {p['player_name']} - Barrel% {p['barrel_percent']:.1f}%")
+        lines.append("Power bats to watch. Run again when Statcast data loads.")
 
-    # Top 3 from home team
-    home_cands = stats[stats['team'] == home_abbr].head(3)
+    # Home team
     lines.append("**Home Side:**")
-    if home_cands.empty:
-        lines.append("No strong Statcast candidates yet.")
+    if data_loaded and stats is not None:
+        home_cands = stats[stats['team'] == home_abbr].head(3)
+        if not home_cands.empty:
+            for _, p in home_cands.iterrows():
+                lines.append(f"💥 {p['player_name']} - Barrel% {p['barrel_percent']:.1f}%")
+        else:
+            lines.append("No strong Statcast candidates yet.")
     else:
-        for _, p in home_cands.iterrows():
-            lines.append(f"💥 {p['player_name']} - Barrel% {p['barrel_percent']:.1f}%")
+        lines.append("Power bats to watch. Run again when Statcast data loads.")
 
     return "\n".join(lines)
 
@@ -106,7 +112,7 @@ async def hr_today(ctx):
         title=f"🚀 HR Dinger Bot - Today's Slate ({today.strftime('%m/%d/%Y')}) 🔥",
         color=0xff4500
     )
-    embed.description = "Real Statcast-powered HR candidates (barrel%, exit velo, platoon). Updates every run."
+    embed.description = "Real Statcast-powered HR candidates. Updates every run."
     
     for game in games[:12]:
         embed.add_field(name="", value=get_hr_candidates(game), inline=False)
