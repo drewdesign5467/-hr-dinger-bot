@@ -27,12 +27,12 @@ EMOJI_LEGEND = {
 @bot.command(name="info")
 async def info(ctx):
     embed = discord.Embed(title="HR Dinger Bot Emoji Legend", color=0xff4500)
-    embed.description = "Here's what each emoji means:"
+    embed.description = "Emoji guide + lineup timing note:"
     for emoji, meaning in EMOJI_LEGEND.items():
         embed.add_field(name=emoji, value=meaning, inline=False)
     embed.add_field(
         name="📌 Lineup Note",
-        value="Early predictions use probable starters and known favorable matchups.\n\nRun `!hrtoday` again closer to first pitch for updated candidates when lineups drop. Confirmed lineups will show better/more accurate HR spots.",
+        value="Early predictions use probable starters.\nRun !hrtoday again closer to first pitch for updated candidates when lineups drop.",
         inline=False
     )
     await ctx.send(embed=embed)
@@ -41,7 +41,7 @@ async def info(ctx):
 async def howto(ctx):
     embed = discord.Embed(title="HR Dinger Bot Commands", color=0xff4500)
     embed.description = "Here's what each command does:"
-    embed.add_field(name="!hrtoday", value="Shows today's slate with current HR candidates (best when run multiple times as lineups drop)", inline=False)
+    embed.add_field(name="!hrtoday", value="Shows today's slate with current HR candidates", inline=False)
     embed.add_field(name="!hrtomorrow", value="Shows tomorrow's slate", inline=False)
     embed.add_field(name="!hrslate", value="Alias for !hrtomorrow", inline=False)
     embed.add_field(name="!info", value="Shows emoji legend + lineup timing note", inline=False)
@@ -53,6 +53,7 @@ def get_hr_candidates(game):
     home = game.get('home_name', 'TBD')
     lines = [f"**{away} @ {home}**"]
 
+    # Strong highlighted matchups
     if "White Sox" in away and "Brewers" in home:
         lines.append("💥⚔️ Munetaka Murakami (LHB vs RHP) - elite raw power + platoon edge")
         lines.append("💥 Luis Robert Jr. - speed + power combo")
@@ -75,6 +76,7 @@ def get_hr_candidates(game):
         lines.append("🔥 Bryan Reynolds - consistent contact")
         lines.append("Mets side: Limited upside vs Skenes")
     else:
+        # Generic but useful for every other game
         lines.append("Power bats to watch in this matchup. Run !hrtoday again closer to first pitch for updated candidates when lineups drop.")
 
     return "\n".join(lines)
