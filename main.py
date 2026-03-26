@@ -15,6 +15,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
 
+# Emoji legend
 EMOJI_LEGEND = {
     "💥": "Raw Power / Hard Contact",
     "⚔️": "Platoon Advantage",
@@ -27,9 +28,26 @@ EMOJI_LEGEND = {
 @bot.command(name="info")
 async def info(ctx):
     embed = discord.Embed(title="HR Dinger Bot Emoji Legend", color=0xff4500)
-    embed.description = "Emoji guide:"
+    embed.description = "Emoji guide + important note:"
     for emoji, meaning in EMOJI_LEGEND.items():
         embed.add_field(name=emoji, value=meaning, inline=False)
+    embed.add_field(
+        name="📌 Lineup Note",
+        value="Early morning predictions use probable starters and known favorable matchups (lineups not fully confirmed yet).\nRun !hrtoday again closer to first pitch for updated candidates once lineups drop.",
+        inline=False
+    )
+    await ctx.send(embed=embed)
+
+@bot.command(name="howto")
+async def howto(ctx):
+    embed = discord.Embed(title="HR Dinger Bot Commands", color=0xff4500)
+    embed.description = "Here's what each command does:"
+    embed.add_field(name="!hrtoday", value="Shows today's full slate with current HR candidates (best to run again closer to first pitch when lineups are confirmed)", inline=False)
+    embed.add_field(name="!hrtomorrow", value="Shows tomorrow's slate with early candidates", inline=False)
+    embed.add_field(name="!hrslate", value="Alias for !hrtomorrow", inline=False)
+    embed.add_field(name="!info", value="Shows emoji legend + lineup timing explanation", inline=False)
+    embed.add_field(name="!howto", value="Shows this help message", inline=False)
+    embed.set_footer(text="Run !hrtoday multiple times throughout the day for the most accurate candidates as lineups drop!")
     await ctx.send(embed=embed)
 
 def get_hr_candidates(game):
@@ -37,7 +55,6 @@ def get_hr_candidates(game):
     home = game.get('home_name', 'TBD')
     lines = [f"**{away} @ {home}**"]
 
-    # Strong highlighted matchups
     if "White Sox" in away and "Brewers" in home:
         lines.append("💥⚔️ Munetaka Murakami (LHB vs RHP) - elite raw power + platoon edge")
         lines.append("💥 Luis Robert Jr. - speed + power combo")
@@ -58,8 +75,7 @@ def get_hr_candidates(game):
         lines.append("❄️ Paul Skenes pitching = tough for HRs")
         lines.append("Avoid most bats - focus on strikeouts instead")
     else:
-        # Generic but useful for every other game
-        lines.append("Power bats to watch in this matchup. Check park factors and weather closer to first pitch.")
+        lines.append("Power bats to watch in this matchup. Run !hrtoday again closer to first pitch for updated candidates when lineups drop.")
 
     return "\n".join(lines)
 
@@ -87,7 +103,7 @@ async def hr_today(ctx):
         inline=False
     )
     
-    embed.set_footer(text="Type !info for emoji legend • Entertainment only — bet responsibly!")
+    embed.set_footer(text="Type !info or !howto for help • Run again later when lineups drop!")
     await ctx.send(embed=embed)
 
 @bot.command(name="hrtomorrow")
@@ -106,7 +122,7 @@ async def hr_tomorrow(ctx):
         home = game.get('home_name', 'TBD')
         embed.add_field(name=f"{away} @ {home}", value="HR watch loading...", inline=False)
     
-    embed.set_footer(text="Type !info for emoji legend • Entertainment only.")
+    embed.set_footer(text="Type !info or !howto for help")
     await ctx.send(embed=embed)
 
 @bot.command(name="hrslate")
