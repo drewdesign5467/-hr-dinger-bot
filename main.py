@@ -27,12 +27,12 @@ EMOJI_LEGEND = {
 @bot.command(name="info")
 async def info(ctx):
     embed = discord.Embed(title="HR Dinger Bot Emoji Legend", color=0xff4500)
-    embed.description = "Emoji guide + important note:"
+    embed.description = "Emoji guide + important lineup note:"
     for emoji, meaning in EMOJI_LEGEND.items():
         embed.add_field(name=emoji, value=meaning, inline=False)
     embed.add_field(
         name="📌 Lineup Note",
-        value="Early predictions use probable starters. Run !hrtoday again closer to first pitch for updated candidates when lineups drop.",
+        value="Early morning predictions use probable starters and known favorable matchups (lineups not fully confirmed yet).\n\nRun !hrtoday again closer to first pitch for updated candidates when lineups drop. Confirmed lineups will show better/more accurate HR spots.",
         inline=False
     )
     await ctx.send(embed=embed)
@@ -41,10 +41,10 @@ async def info(ctx):
 async def howto(ctx):
     embed = discord.Embed(title="HR Dinger Bot Commands", color=0xff4500)
     embed.description = "Here's what each command does:"
-    embed.add_field(name="!hrtoday", value="Shows today's slate with current HR candidates from both teams", inline=False)
+    embed.add_field(name="!hrtoday", value="Shows today's slate with current HR candidates (run multiple times as lineups drop for best accuracy)", inline=False)
     embed.add_field(name="!hrtomorrow", value="Shows tomorrow's slate", inline=False)
     embed.add_field(name="!hrslate", value="Alias for !hrtomorrow", inline=False)
-    embed.add_field(name="!info", value="Emoji legend + lineup timing info", inline=False)
+    embed.add_field(name="!info", value="Emoji legend + lineup timing explanation", inline=False)
     embed.add_field(name="!howto", value="This help message", inline=False)
     await ctx.send(embed=embed)
 
@@ -53,50 +53,29 @@ def get_hr_candidates(game):
     home = game.get('home_name', 'TBD')
     lines = [f"**{away} @ {home}**"]
 
-    # Away team (Pirates side when Skenes pitches, etc.)
-    if "Pirates" in away:
-        lines.append("❄️ Paul Skenes pitching = tough for HRs on Mets side")
-        lines.append("Pirates side: Power bats to watch (limited upside today)")
-        lines.append("💥 Oneil Cruz - raw power potential")
-        lines.append("🔥 Bryan Reynolds - consistent contact")
-    elif "White Sox" in away:
+    if "White Sox" in away and "Brewers" in home:
         lines.append("💥⚔️ Munetaka Murakami (LHB vs RHP) - elite raw power + platoon edge")
         lines.append("💥 Luis Robert Jr. - speed + power combo")
         lines.append("🔥 Andrew Benintendi - contact + pop")
-    elif "Twins" in away:
-        lines.append("🔥 Tyler O'Neill types - power in favorable spots")
-        lines.append("💥 Young power bats to watch")
-        lines.append("Check lineup for best matchups")
-    elif "Red Sox" in away:
-        lines.append("🏟️💥 Jarren Duran - speed + pop")
-        lines.append("🏟️ Willson Contreras - power bat")
-        lines.append("💥 Roman Anthony - rising threat")
-    else:
-        lines.append("Away side power bats to watch. Check lineup closer to first pitch.")
-
-    # Home team
-    if "Brewers" in home:
-        lines.append("Brewers side: Power bats to watch in favorable home matchup")
-        lines.append("Check lineup for best candidates")
-        lines.append("Park + weather will matter")
-    elif "Orioles" in home:
-        lines.append("🏟️ Tyler O'Neill - Camden Yards boost")
-        lines.append("💥 Gunnar Henderson - young power")
-        lines.append("⚔️ Adley Rutschman - switch-hitter")
-    elif "Reds" in home:
-        lines.append("🏟️💥 Jarren Duran types in GABP - big park boost")
-        lines.append("Power bats thrive here")
-        lines.append("Check confirmed lineup")
+    elif "Twins" in away and "Orioles" in home:
+        lines.append("🔥🏟️ Tyler O'Neill (BAL) - Opening Day history + Camden Yards boost")
+        lines.append("💥 Gunnar Henderson - young power bat vs righty")
+        lines.append("⚔️ Adley Rutschman - switch-hitter with pull power")
+    elif "Red Sox" in away and "Reds" in home:
+        lines.append("🏟️💥 Jarren Duran - speed + pop in GABP")
+        lines.append("🏟️ Willson Contreras - power in hitter-friendly park")
+        lines.append("💥 Roman Anthony - rising young power threat")
     elif "Dodgers" in home:
-        lines.append("💥 Will Smith - strong vs righties")
-        lines.append("💥 Shohei Ohtani - elite power")
-        lines.append("🔥 Freddie Freeman - consistency")
-    elif "Mets" in home:
-        lines.append("Mets side: Limited upside vs Skenes")
-        lines.append("Power bats to watch if lineup favors them")
-        lines.append("Focus on Skenes strikeout upside")
+        lines.append("💥 Will Smith - strong vs righties + warm Dodger Stadium")
+        lines.append("💥 Shohei Ohtani - elite power (if in lineup)")
+        lines.append("🔥 Freddie Freeman - veteran consistency")
+    elif "Pirates" in away and "Mets" in home:
+        lines.append("❄️ Paul Skenes pitching = tough for HRs on Mets side")
+        lines.append("Pirates side: 💥 Oneil Cruz - raw power potential")
+        lines.append("🔥 Bryan Reynolds - consistent contact")
+        lines.append("Mets side: Limited upside vs Skenes - check lineup")
     else:
-        lines.append("Home side power bats to watch. Check park + weather closer to first pitch.")
+        lines.append("Power bats to watch in this matchup. Run !hrtoday again closer to first pitch for updated candidates when lineups drop.")
 
     return "\n".join(lines)
 
@@ -109,7 +88,7 @@ async def hr_today(ctx):
         title=f"🚀 HR Dinger Bot - Today's Slate ({today.strftime('%m/%d/%Y')}) 🔥",
         color=0xff4500
     )
-    embed.description = "Opening Day HR Watch! 3 candidates per side where possible."
+    embed.description = "Opening Day HR Watch! Matchup-based candidates with emoji stats."
     
     for game in games[:12]:
         embed.add_field(name="", value=get_hr_candidates(game), inline=False)
