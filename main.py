@@ -41,7 +41,7 @@ async def info(ctx):
 async def howto(ctx):
     embed = discord.Embed(title="HR Dinger Bot Commands", color=0xff4500)
     embed.description = "Here's what each command does:"
-    embed.add_field(name="!hrtoday", value="Shows today's slate with current HR candidates (run again later as lineups drop for best accuracy)", inline=False)
+    embed.add_field(name="!hrtoday", value="Shows today's slate with current HR candidates", inline=False)
     embed.add_field(name="!hrtomorrow", value="Shows tomorrow's slate", inline=False)
     embed.add_field(name="!hrslate", value="Alias for !hrtomorrow", inline=False)
     embed.add_field(name="!info", value="Shows emoji legend + lineup timing note", inline=False)
@@ -115,14 +115,22 @@ async def hr_tomorrow(ctx):
         title=f"🚀 HR Dinger Bot - Tomorrow's Slate ({tomorrow.strftime('%m/%d/%Y')})",
         color=0xff4500
     )
-    embed.description = "HR candidates loading... Full model coming soon!"
+    embed.description = "Opening Day HR Watch! Matchup-based candidates with emoji stats."
     
-    for game in games[:10]:
-        away = game.get('away_name', 'TBD')
-        home = game.get('home_name', 'TBD')
-        embed.add_field(name=f"{away} @ {home}", value="HR watch loading...", inline=False)
+    for game in games[:12]:
+        embed.add_field(name="", value=get_hr_candidates(game), inline=False)
     
-    embed.set_footer(text="Type !info or !howto for help")
+    embed.add_field(
+        name="Suggested Parlays",
+        value=(
+            "**Conservative 2-leg:** Tyler O'Neill + Will Smith\n"
+            "**3-leg Longshot:** O'Neill + Murakami + Duran (GABP)\n"
+            "**4-leg Super Longshot:** O'Neill + Murakami + Will Smith + Duran"
+        ),
+        inline=False
+    )
+    
+    embed.set_footer(text="Type !info or !howto for help • Run !hrtomorrow again later when lineups drop!")
     await ctx.send(embed=embed)
 
 @bot.command(name="hrslate")
