@@ -18,19 +18,31 @@ async def on_ready():
 def get_hr_candidates(game):
     away = game.get('away_name', 'TBD')
     home = game.get('home_name', 'TBD')
+    lines = [f"**{away} @ {home}**"]
     
     if "White Sox" in away and "Brewers" in home:
-        return "🔥 **Munetaka Murakami** (LHB vs RHP Misiorowski) - elite raw power + platoon edge. Strong longshot."
+        lines.append("🔥 Munetaka Murakami (LHB vs RHP) - elite raw power + platoon edge")
+        lines.append("🔥 Andrew Vaughn - consistent hard contact vs righties")
+        lines.append("🔥 Luis Robert Jr. - speed + power combo in favorable spot")
     elif "Twins" in away and "Orioles" in home:
-        return "🔥 **Tyler O'Neill** (BAL) vs Joe Ryan - Opening Day history + Camden Yards boost. Solid play."
+        lines.append("🔥 Tyler O'Neill (BAL) - Opening Day history + Camden Yards boost")
+        lines.append("🔥 Gunnar Henderson - young power bat vs righty")
+        lines.append("🔥 Adley Rutschman - switch-hitter with pull power")
     elif "Red Sox" in away and "Reds" in home:
-        return "🔥 **Great American Ball Park** = massive power boost. Look for Red Sox power bats (e.g. Devers, O'Neill types)."
+        lines.append("🔥 Rafael Devers - Great American Ball Park monster")
+        lines.append("🔥 Tyler O'Neill - power bat in hitter-friendly park")
+        lines.append("🔥 Jarren Duran - speed + pop in GABP")
     elif "Pirates" in away and "Mets" in home:
-        return "Paul Skenes pitching = tough for HRs. Avoid most bats here."
+        lines.append("Paul Skenes pitching = tough for HRs")
+        lines.append("Avoid most bats - focus on Skenes strikeout upside instead")
     elif "Dodgers" in home:
-        return "🔥 **Will Smith** (LAD) - strong vs righties + warm Dodger Stadium. Good candidate."
+        lines.append("🔥 Will Smith - strong vs righties + warm Dodger Stadium")
+        lines.append("🔥 Shohei Ohtani - elite power (if in lineup)")
+        lines.append("🔥 Freddie Freeman - veteran consistency")
     else:
-        return f"Power bats to watch in {home} or {away}."
+        lines.append("Power bats to watch: Check park + weather closer to first pitch.")
+    
+    return "\n".join(lines)
 
 @bot.command(name="hrtoday")
 async def hr_today(ctx):
@@ -41,7 +53,7 @@ async def hr_today(ctx):
         title=f"🚀 HR Dinger Bot - Today's Slate ({today.strftime('%m/%d/%Y')}) 🔥",
         color=0xff4500
     )
-    embed.description = "Opening Day HR Watch! Real matchup-based candidates with reasoning.\nFull barrel% + probability model in next update."
+    embed.description = "Opening Day HR Watch! 3 candidates per game with reasoning.\nFull barrel% + probability model coming soon."
     
     for game in games[:12]:
         embed.add_field(
@@ -54,8 +66,8 @@ async def hr_today(ctx):
         name="Suggested Parlays",
         value=(
             "**Conservative 2-leg:** Tyler O'Neill + Will Smith\n"
-            "**3-leg Longshot:** O'Neill + Murakami + Red Sox bat in GABP\n"
-            "**4-leg Super Longshot:** O'Neill + Murakami + Will Smith + GABP power bat"
+            "**3-leg Longshot:** O'Neill + Murakami + Devers (GABP)\n"
+            "**4-leg Super Longshot:** O'Neill + Murakami + Will Smith + Devers"
         ),
         inline=False
     )
