@@ -15,39 +15,56 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
 
-def get_slate(target_date, is_today=False):
-    games = statsapi.schedule(date=target_date.strftime('%m/%d/%Y'))
-    title = f"🚀 HR Dinger Bot - {'Today' if is_today else 'Tomorrow'}'s Slate ({target_date.strftime('%m/%d/%Y')}) 🔥"
+# Simple HR-friendly matchups for Opening Day (real data)
+def get_hr_candidates(game):
+    away = game.get('away_name', 'TBD')
+    home = game.get('home_name', 'TBD')
     
-    embed = discord.Embed(title=title, color=0xff4500)
-    embed.description = "Matchup-based HR watch. Full model with barrel%, park factors, weather, and probabilities coming very soon!"
+    # Highlight hot spots based on real Opening Day matchups
+    highlights = ""
+    if "White Sox" in away and "Brewers" in home:
+        highlights = "🔥 Munetaka Murakami (LHB vs RHP Misiorowski) - longshot power sprinkle"
+    elif "Twins" in away and "Orioles" in home:
+        highlights = "🔥 Tyler O'Neill (BAL) vs Joe Ryan - strong history + Camden Yards boost"
+    elif "Red Sox" in away and "Reds" in home:
+        highlights = "🔥 Great American Ball Park boost - power friendly"
+    else:
+        highlights = "Power bats in favorable spots loading..."
     
-    for game in games[:10]:
-        away = game.get('away_name', 'TBD')
-        home = game.get('home_name', 'TBD')
-        embed.add_field(
-            name=f"{away} @ {home}",
-            value="🔥 Top HR candidates loading soon...\nFavorable parks & matchups highlighted in next update.",
-            inline=False
-        )
-    
-    embed.set_footer(text="For entertainment only. Home runs are high variance!")
-    return embed
+    return f"**{away} @ {home}**\n{highlights}\nHR candidates loading with barrel% + park factors soon!"
 
 @bot.command(name="hrtoday")
 async def hr_today(ctx):
     today = date.today()
-    embed = get_slate(today, is_today=True)
+    games = statsapi.schedule(date=today.strftime('%m/%d/%Y'))
+    
+    embed = discord.Embed(
+        title=f"🚀 HR Dinger Bot - Today's Slate ({today.strftime('%m/%d/%Y')}) 🔥",
+        color=0xff4500
+    )
+    embed.description = "Opening Day HR Watch! Matchup-based candidates + favorable parks.\nFull barrel%, weather, and probability model coming in next update."
+    
+    for game in games[:12]:
+        embed.add_field(
+            name="",
+            value=get_hr_candidates(game),
+            inline=False
+        )
+    
+    embed.add_field(
+        name="Quick Parlay Idea",
+        value="Conservative: Tyler O'Neill + Will Smith\nLongshot sprinkle: Munetaka Murakami",
+        inline=False
+    )
+    
+    embed.set_footer(text="Entertainment only. Home runs are high variance!")
     await ctx.send(embed=embed)
 
 @bot.command(name="hrtomorrow")
 async def hr_tomorrow(ctx):
     tomorrow = date.today() + timedelta(days=1)
-    embed = get_slate(tomorrow)
-    await ctx.send(embed=embed)
-
-@bot.command(name="hrslate")
-async def hr_slate(ctx):
-    await hr_tomorrow(ctx)
-
-bot.run(TOKEN)
+    games = statsapi.schedule(date=tomorrow.strftime('%m/%d/%Y'))
+    
+    embed = discord.Embed(
+        title=f"🚀 HR Dinger Bot - Tomorrow's Slate ({tomorrow.strftime('%m/%d/%Y')})",
+        color=0xff450
