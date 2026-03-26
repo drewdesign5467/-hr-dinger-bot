@@ -15,24 +15,21 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
 
-EMOJI_LEGEND = {
-    "💥": "Raw Power / Hard Contact",
-    "⚔️": "Platoon Advantage",
-    "🏟️": "Hitter-Friendly Park Boost",
-    "🔥": "Strong Matchup / History",
-    "🎲": "Longshot / High Variance",
-    "❄️": "Tough Pitcher (suppresses HRs)"
-}
-
 @bot.command(name="info")
 async def info(ctx):
     embed = discord.Embed(title="HR Dinger Bot Emoji Legend", color=0xff4500)
-    embed.description = "Emoji guide + important lineup note:"
-    for emoji, meaning in EMOJI_LEGEND.items():
-        embed.add_field(name=emoji, value=meaning, inline=False)
+    embed.description = "Here's what each emoji means:"
+    
+    embed.add_field(name="", value="💥 Raw Power / Hard Contact", inline=False)
+    embed.add_field(name="", value="⚔️ Platoon Advantage", inline=False)
+    embed.add_field(name="", value="🏟️ Hitter-Friendly Park Boost", inline=False)
+    embed.add_field(name="", value="🔥 Strong Matchup / History", inline=False)
+    embed.add_field(name="", value="🎲 Longshot / High Variance", inline=False)
+    embed.add_field(name="", value="❄️ Tough Pitcher (suppresses HRs)", inline=False)
+    
     embed.add_field(
         name="📌 Lineup Note",
-        value="Early morning predictions use probable starters and known favorable matchups (lineups not fully confirmed yet).\n\nRun !hrtoday again closer to first pitch for updated candidates when lineups drop. Confirmed lineups will show better/more accurate HR spots.",
+        value="Early predictions use probable starters and known favorable matchups (lineups not fully confirmed yet).\n\nRun `!hrtoday` again closer to first pitch for updated candidates when lineups drop. Confirmed lineups will show better/more accurate HR spots.",
         inline=False
     )
     await ctx.send(embed=embed)
@@ -41,11 +38,11 @@ async def info(ctx):
 async def howto(ctx):
     embed = discord.Embed(title="HR Dinger Bot Commands", color=0xff4500)
     embed.description = "Here's what each command does:"
-    embed.add_field(name="!hrtoday", value="Shows today's slate with current HR candidates (run multiple times as lineups drop for best accuracy)", inline=False)
+    embed.add_field(name="!hrtoday", value="Shows today's slate with current HR candidates (run again later as lineups drop for best accuracy)", inline=False)
     embed.add_field(name="!hrtomorrow", value="Shows tomorrow's slate", inline=False)
     embed.add_field(name="!hrslate", value="Alias for !hrtomorrow", inline=False)
-    embed.add_field(name="!info", value="Emoji legend + lineup timing explanation", inline=False)
-    embed.add_field(name="!howto", value="This help message", inline=False)
+    embed.add_field(name="!info", value="Shows this emoji legend + lineup timing note", inline=False)
+    embed.add_field(name="!howto", value="Shows this help message", inline=False)
     await ctx.send(embed=embed)
 
 def get_hr_candidates(game):
@@ -73,7 +70,7 @@ def get_hr_candidates(game):
         lines.append("❄️ Paul Skenes pitching = tough for HRs on Mets side")
         lines.append("Pirates side: 💥 Oneil Cruz - raw power potential")
         lines.append("🔥 Bryan Reynolds - consistent contact")
-        lines.append("Mets side: Limited upside vs Skenes - check lineup")
+        lines.append("Mets side: Limited upside vs Skenes")
     else:
         lines.append("Power bats to watch in this matchup. Run !hrtoday again closer to first pitch for updated candidates when lineups drop.")
 
