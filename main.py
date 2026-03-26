@@ -17,7 +17,6 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
 
-# Emoji legend
 EMOJI_LEGEND = {
     "💥": "Raw Power / Hard Contact",
     "⚔️": "Platoon Advantage",
@@ -35,7 +34,7 @@ async def info(ctx):
         embed.add_field(name=emoji, value=meaning, inline=False)
     embed.add_field(
         name="📌 Lineup Note",
-        value="The bot tries to detect confirmed lineups from Rotowire.\nGreen ✅ means lineup confirmed for that team.\nRun !hrtoday again closer to first pitch for best accuracy.",
+        value="The bot tries to detect confirmed lineups from Rotowire.\n✅ means lineup confirmed for that team.\nRun !hrtoday again closer to first pitch for best accuracy.",
         inline=False
     )
     await ctx.send(embed=embed)
@@ -44,7 +43,7 @@ async def info(ctx):
 async def howto(ctx):
     embed = discord.Embed(title="HR Dinger Bot Commands", color=0xff4500)
     embed.description = "Here's what each command does:"
-    embed.add_field(name="!hrtoday", value="Shows today's slate with current HR candidates (best when run multiple times as lineups drop)", inline=False)
+    embed.add_field(name="!hrtoday", value="Shows today's slate with current HR candidates and tries to detect confirmed lineups", inline=False)
     embed.add_field(name="!hrtomorrow", value="Shows tomorrow's slate", inline=False)
     embed.add_field(name="!hrslate", value="Alias for !hrtomorrow", inline=False)
     embed.add_field(name="!info", value="Shows emoji legend + lineup timing note", inline=False)
@@ -52,28 +51,31 @@ async def howto(ctx):
     await ctx.send(embed=embed)
 
 def scrape_rotowire_lineups():
+    """Try to detect confirmed lineups from Rotowire"""
     try:
         url = "https://www.rotowire.com/baseball/daily-lineups.php"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(response.content, "html.parser")
-        # This is a basic parser - it looks for confirmed lineups
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        response = requests.get(url, headers=headers, timeout=15)
+        soup = BeautifulSoup(response.text, "html.parser")
+        
         confirmed = {}
-        for box in soup.select('.lineup__box'):
-            team_name = box.select_one('.lineup__team-name')
-            if team_name and "Confirmed Lineup" in box.text:
-                team = team_name.get_text(strip=True)
-                confirmed[team] = True
+        # Look for boxes with "Confirmed Lineup"
+        for box in soup.find_all("div", class_=lambda x: x and "lineup" in x.lower()):
+            team_elem = box.find("div", class_=lambda x: x and "team" in x.lower())
+            if team_elem and "Confirmed Lineup" in box.get_text():
+                team_name = team_elem.get_text(strip=True)
+                if team_name:
+                    confirmed[team_name] = True
         return confirmed
     except Exception as e:
-        print(f"Scraping failed: {e}")
+        print(f"Rotowire scrape failed: {e}")
         return {}
 
 @bot.command(name="hrtoday")
 async def hr_today(ctx):
     today = date.today()
     games = statsapi.schedule(date=today.strftime('%m/%d/%Y'))
-    confirmed_lineups = scrape_rotowire_lineups()
+    confirmed = scrape_rotowire_lineups()
     
     embed = discord.Embed(
         title=f"🚀 HR Dinger Bot - Today's Slate ({today.strftime('%m/%d/%Y')}) 🔥",
@@ -84,10 +86,13 @@ async def hr_today(ctx):
     for game in games[:12]:
         away = game.get('away_name', 'TBD')
         home = game.get('home_name', 'TBD')
-        away_check = "✅ " if any(away in k for k in confirmed_lineups) else ""
-        home_check = "✅ " if any(home in k for k in confirmed_lineups) else ""
+        
+        away_check = "✅ " if any(away in k for k in confirmed) else ""
+        home_check = "✅ " if any(home in k for k in confirmed) else ""
+        
         lines = [f"**{away_check}{away} @ {home_check}{home}**"]
-        lines.append("Power bats to watch. Run command again closer to first pitch for updated candidates when lineups drop.")
+        lines.append("Power bats to watch in this matchup. Run !hrtoday again closer to first pitch for updated candidates when lineups drop.")
+        
         embed.add_field(name="", value="\n".join(lines), inline=False)
     
     embed.add_field(
@@ -100,7 +105,7 @@ async def hr_today(ctx):
         inline=False
     )
     
-    embed.set_footer(text="Type !info or !howto for help • Confirmed lineups show ✅")
+    embed.set_footer(text="Type !info or !howto for help • ✅ = confirmed lineup detected")
     await ctx.send(embed=embed)
 
 @bot.command(name="hrtomorrow")
