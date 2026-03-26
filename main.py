@@ -15,32 +15,52 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
 
+# Emoji legend for stats
+EMOJI_LEGEND = {
+    "💥": "Raw Power / Hard Contact",
+    "⚔️": "Platoon Advantage (LHB vs RHP or vice versa)",
+    "🏟️": "Hitter-Friendly Park Boost",
+    "🔥": "Strong Matchup / History",
+    "🎲": "Longshot / High Variance Play",
+    "❄️": "Tough Pitcher / Suppresses HRs",
+    "🌬️": "Weather / Wind Favoring HRs (when added)"
+}
+
+@bot.command(name="info")
+async def info(ctx):
+    embed = discord.Embed(title="HR Dinger Bot Emoji Legend", color=0xff4500)
+    embed.description = "Here's what the emojis mean:"
+    for emoji, meaning in EMOJI_LEGEND.items():
+        embed.add_field(name=emoji, value=meaning, inline=False)
+    embed.set_footer(text="These help quickly spot the best HR spots!")
+    await ctx.send(embed=embed)
+
 def get_hr_candidates(game):
     away = game.get('away_name', 'TBD')
     home = game.get('home_name', 'TBD')
     lines = [f"**{away} @ {home}**"]
     
     if "White Sox" in away and "Brewers" in home:
-        lines.append("🔥 Munetaka Murakami (LHB vs RHP) - elite raw power + platoon edge")
-        lines.append("🔥 Andrew Vaughn - consistent hard contact vs righties")
-        lines.append("🔥 Luis Robert Jr. - speed + power combo in favorable spot")
+        lines.append("💥⚔️ **Munetaka Murakami** (LHB vs RHP) - elite raw power + platoon edge")
+        lines.append("💥 **Andrew Vaughn** - consistent hard contact vs righties")
+        lines.append("🎲 **Luis Robert Jr.** - speed + power combo")
     elif "Twins" in away and "Orioles" in home:
-        lines.append("🔥 Tyler O'Neill (BAL) - Opening Day history + Camden Yards boost")
-        lines.append("🔥 Gunnar Henderson - young power bat vs righty")
-        lines.append("🔥 Adley Rutschman - switch-hitter with pull power")
+        lines.append("🔥🏟️ **Tyler O'Neill** (BAL) - Opening Day history + Camden Yards boost")
+        lines.append("💥 **Gunnar Henderson** - young power bat vs righty")
+        lines.append("⚔️ **Adley Rutschman** - switch-hitter with pull power")
     elif "Red Sox" in away and "Reds" in home:
-        lines.append("🔥 Rafael Devers - Great American Ball Park monster")
-        lines.append("🔥 Tyler O'Neill - power bat in hitter-friendly park")
-        lines.append("🔥 Jarren Duran - speed + pop in GABP")
-    elif "Pirates" in away and "Mets" in home:
-        lines.append("Paul Skenes pitching = tough for HRs")
-        lines.append("Avoid most bats - focus on Skenes strikeout upside instead")
+        lines.append("🏟️💥 **Rafael Devers** - Great American Ball Park monster")
+        lines.append("🏟️ **Tyler O'Neill** - power bat in hitter-friendly park")
+        lines.append("💥 **Jarren Duran** - speed + pop in GABP")
     elif "Dodgers" in home:
-        lines.append("🔥 Will Smith - strong vs righties + warm Dodger Stadium")
-        lines.append("🔥 Shohei Ohtani - elite power (if in lineup)")
-        lines.append("🔥 Freddie Freeman - veteran consistency")
+        lines.append("💥 **Will Smith** - strong vs righties + warm Dodger Stadium")
+        lines.append("💥 **Shohei Ohtani** - elite power (if in lineup)")
+        lines.append("🔥 **Freddie Freeman** - veteran consistency")
+    elif "Pirates" in away and "Mets" in home:
+        lines.append("❄️ Paul Skenes pitching = tough for HRs")
+        lines.append("Avoid most bats - focus on Skenes strikeout upside instead")
     else:
-        lines.append("Power bats to watch: Check park + weather closer to first pitch.")
+        lines.append("Power bats to watch in this matchup. Check park factors and weather closer to first pitch.")
     
     return "\n".join(lines)
 
@@ -53,7 +73,7 @@ async def hr_today(ctx):
         title=f"🚀 HR Dinger Bot - Today's Slate ({today.strftime('%m/%d/%Y')}) 🔥",
         color=0xff4500
     )
-    embed.description = "Opening Day HR Watch! 3 candidates per game with reasoning.\nFull barrel% + probability model coming soon."
+    embed.description = "Opening Day HR Watch! Real matchup-based candidates with emoji stats."
     
     for game in games[:12]:
         embed.add_field(
@@ -72,7 +92,7 @@ async def hr_today(ctx):
         inline=False
     )
     
-    embed.set_footer(text="Entertainment only. Home runs are high variance — bet responsibly!")
+    embed.set_footer(text="Type !info for emoji legend • Entertainment only — bet responsibly!")
     await ctx.send(embed=embed)
 
 @bot.command(name="hrtomorrow")
@@ -91,7 +111,7 @@ async def hr_tomorrow(ctx):
         home = game.get('home_name', 'TBD')
         embed.add_field(name=f"{away} @ {home}", value="HR watch loading...", inline=False)
     
-    embed.set_footer(text="Entertainment only.")
+    embed.set_footer(text="Type !info for emoji legend • Entertainment only.")
     await ctx.send(embed=embed)
 
 @bot.command(name="hrslate")
