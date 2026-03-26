@@ -15,20 +15,19 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
 
-# Emoji legend
 EMOJI_LEGEND = {
     "💥": "Raw Power / Hard Contact",
     "⚔️": "Platoon Advantage",
     "🏟️": "Hitter-Friendly Park Boost",
     "🔥": "Strong Matchup / History",
     "🎲": "Longshot / High Variance",
-    "❄️": "Tough Pitcher (suppresses HRs)"
+    "❄️": "Tough Pitcher"
 }
 
 @bot.command(name="info")
 async def info(ctx):
     embed = discord.Embed(title="HR Dinger Bot Emoji Legend", color=0xff4500)
-    embed.description = "Quick guide to the emojis:"
+    embed.description = "Emoji guide:"
     for emoji, meaning in EMOJI_LEGEND.items():
         embed.add_field(name=emoji, value=meaning, inline=False)
     await ctx.send(embed=embed)
@@ -38,36 +37,28 @@ def get_hr_candidates(game):
     home = game.get('home_name', 'TBD')
     lines = [f"**{away} @ {home}**"]
 
-    # White Sox @ Brewers
+    # Strong highlighted matchups
     if "White Sox" in away and "Brewers" in home:
         lines.append("💥⚔️ Munetaka Murakami (LHB vs RHP) - elite raw power + platoon edge")
         lines.append("💥 Luis Robert Jr. - speed + power combo")
         lines.append("🔥 Andrew Benintendi - contact + pop")
-        lines.append("Brewers: Check park + weather closer to first pitch.")
-    # Twins @ Orioles
     elif "Twins" in away and "Orioles" in home:
         lines.append("🔥🏟️ Tyler O'Neill (BAL) - Opening Day history + Camden Yards boost")
         lines.append("💥 Gunnar Henderson - young power bat vs righty")
         lines.append("⚔️ Adley Rutschman - switch-hitter with pull power")
-        lines.append("Twins: Check park + weather closer to first pitch.")
-    # Red Sox @ Reds (GABP)
     elif "Red Sox" in away and "Reds" in home:
-        lines.append("🏟️💥 Jarren Duran - speed + pop in Great American Ball Park")
+        lines.append("🏟️💥 Jarren Duran - speed + pop in GABP")
         lines.append("🏟️ Willson Contreras - power in hitter-friendly park")
         lines.append("💥 Roman Anthony - rising young power threat")
-        lines.append("Reds: Check park + weather closer to first pitch.")
-    # Dodgers home
     elif "Dodgers" in home:
         lines.append("💥 Will Smith - strong vs righties + warm Dodger Stadium")
         lines.append("💥 Shohei Ohtani - elite power (if in lineup)")
         lines.append("🔥 Freddie Freeman - veteran consistency")
-        lines.append("Away side: Check park + weather closer to first pitch.")
-    # Pirates @ Mets (Skenes)
     elif "Pirates" in away and "Mets" in home:
         lines.append("❄️ Paul Skenes pitching = tough for HRs")
         lines.append("Avoid most bats - focus on strikeouts instead")
-    # Default for all other games
     else:
+        # Generic but useful for every other game
         lines.append("Power bats to watch in this matchup. Check park factors and weather closer to first pitch.")
 
     return "\n".join(lines)
