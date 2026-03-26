@@ -15,24 +15,23 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
 
-# Emoji legend for stats
+# Emoji legend
 EMOJI_LEGEND = {
     "💥": "Raw Power / Hard Contact",
-    "⚔️": "Platoon Advantage (LHB vs RHP or vice versa)",
+    "⚔️": "Platoon Advantage",
     "🏟️": "Hitter-Friendly Park Boost",
     "🔥": "Strong Matchup / History",
-    "🎲": "Longshot / High Variance Play",
-    "❄️": "Tough Pitcher / Suppresses HRs",
-    "🌬️": "Weather / Wind Favoring HRs (when added)"
+    "🎲": "Longshot / High Variance",
+    "❄️": "Tough Pitcher (suppresses HRs)"
 }
 
 @bot.command(name="info")
 async def info(ctx):
     embed = discord.Embed(title="HR Dinger Bot Emoji Legend", color=0xff4500)
-    embed.description = "Here's what the emojis mean:"
+    embed.description = "Quick guide to the emojis used in HR candidates:"
     for emoji, meaning in EMOJI_LEGEND.items():
         embed.add_field(name=emoji, value=meaning, inline=False)
-    embed.set_footer(text="These help quickly spot the best HR spots!")
+    embed.set_footer(text="Type !hrtoday or !hrtomorrow anytime!")
     await ctx.send(embed=embed)
 
 def get_hr_candidates(game):
@@ -41,24 +40,24 @@ def get_hr_candidates(game):
     lines = [f"**{away} @ {home}**"]
     
     if "White Sox" in away and "Brewers" in home:
-        lines.append("💥⚔️ **Munetaka Murakami** (LHB vs RHP) - elite raw power + platoon edge")
-        lines.append("💥 **Andrew Vaughn** - consistent hard contact vs righties")
-        lines.append("🎲 **Luis Robert Jr.** - speed + power combo")
+        lines.append("💥⚔️ Munetaka Murakami (LHB vs RHP) - elite raw power + platoon edge")
+        lines.append("💥 Andrew Vaughn - consistent hard contact vs righties")
+        lines.append("🎲 Luis Robert Jr. - speed + power combo")
     elif "Twins" in away and "Orioles" in home:
-        lines.append("🔥🏟️ **Tyler O'Neill** (BAL) - Opening Day history + Camden Yards boost")
-        lines.append("💥 **Gunnar Henderson** - young power bat vs righty")
-        lines.append("⚔️ **Adley Rutschman** - switch-hitter with pull power")
+        lines.append("🔥🏟️ Tyler O'Neill (BAL) - Opening Day history + Camden Yards boost")
+        lines.append("💥 Gunnar Henderson - young power bat vs righty")
+        lines.append("⚔️ Adley Rutschman - switch-hitter with pull power")
     elif "Red Sox" in away and "Reds" in home:
-        lines.append("🏟️💥 **Rafael Devers** - Great American Ball Park monster")
-        lines.append("🏟️ **Tyler O'Neill** - power bat in hitter-friendly park")
-        lines.append("💥 **Jarren Duran** - speed + pop in GABP")
+        lines.append("🏟️💥 Jarren Duran - speed + pop in Great American Ball Park")
+        lines.append("🏟️ Willson Contreras - power in hitter-friendly park")
+        lines.append("💥 Roman Anthony - rising young power threat")
     elif "Dodgers" in home:
-        lines.append("💥 **Will Smith** - strong vs righties + warm Dodger Stadium")
-        lines.append("💥 **Shohei Ohtani** - elite power (if in lineup)")
-        lines.append("🔥 **Freddie Freeman** - veteran consistency")
+        lines.append("💥 Will Smith - strong vs righties + warm Dodger Stadium")
+        lines.append("💥 Shohei Ohtani - elite power (if in lineup)")
+        lines.append("🔥 Freddie Freeman - veteran consistency")
     elif "Pirates" in away and "Mets" in home:
         lines.append("❄️ Paul Skenes pitching = tough for HRs")
-        lines.append("Avoid most bats - focus on Skenes strikeout upside instead")
+        lines.append("Avoid most bats - focus on strikeouts instead")
     else:
         lines.append("Power bats to watch in this matchup. Check park factors and weather closer to first pitch.")
     
@@ -86,8 +85,8 @@ async def hr_today(ctx):
         name="Suggested Parlays",
         value=(
             "**Conservative 2-leg:** Tyler O'Neill + Will Smith\n"
-            "**3-leg Longshot:** O'Neill + Murakami + Devers (GABP)\n"
-            "**4-leg Super Longshot:** O'Neill + Murakami + Will Smith + Devers"
+            "**3-leg Longshot:** O'Neill + Murakami + Duran (GABP)\n"
+            "**4-leg Super Longshot:** O'Neill + Murakami + Will Smith + Duran"
         ),
         inline=False
     )
