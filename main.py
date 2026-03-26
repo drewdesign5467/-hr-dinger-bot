@@ -1,8 +1,10 @@
 import discord
 from discord.ext import commands
 import statsapi
+import pybaseball as pyb
 from datetime import date, timedelta
 import os
+import pandas as pd
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -14,14 +16,14 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 @bot.event
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
+    print("Loading Statcast data for dynamic HR predictions...")
 
 EMOJI_LEGEND = {
     "💥": "Raw Power / Hard Contact",
     "⚔️": "Platoon Advantage",
     "🏟️": "Hitter-Friendly Park Boost",
-    "🔥": "Strong Matchup / History",
-    "🎲": "Longshot / High Variance",
-    "❄️": "Tough Pitcher (suppresses HRs)"
+    "🔥": "Strong Matchup",
+    "🎲": "Longshot / High Variance"
 }
 
 @bot.command(name="info")
@@ -32,7 +34,7 @@ async def info(ctx):
         embed.add_field(name=emoji, value=meaning, inline=False)
     embed.add_field(
         name="📌 Lineup Note",
-        value="Early predictions use probable starters.\nRun !hrtoday again closer to first pitch for updated candidates when lineups drop.",
+        value="Candidates are ranked using real Statcast data (barrel%, exit velo, platoon, park).\nRun !hrtoday again closer to first pitch for updated candidates when lineups drop.",
         inline=False
     )
     await ctx.send(embed=embed)
@@ -41,10 +43,10 @@ async def info(ctx):
 async def howto(ctx):
     embed = discord.Embed(title="HR Dinger Bot Commands", color=0xff4500)
     embed.description = "Here's what each command does:"
-    embed.add_field(name="!hrtoday", value="Shows today's slate with current HR candidates", inline=False)
+    embed.add_field(name="!hrtoday", value="Shows today's slate with Statcast-ranked HR candidates", inline=False)
     embed.add_field(name="!hrtomorrow", value="Shows tomorrow's slate", inline=False)
     embed.add_field(name="!hrslate", value="Alias for !hrtomorrow", inline=False)
-    embed.add_field(name="!info", value="Shows emoji legend + lineup timing note", inline=False)
+    embed.add_field(name="!info", value="Shows emoji legend + how the bot works", inline=False)
     embed.add_field(name="!howto", value="Shows this help message", inline=False)
     await ctx.send(embed=embed)
 
@@ -53,49 +55,45 @@ def get_hr_candidates(game):
     home = game.get('home_name', 'TBD')
     lines = [f"**{away} @ {home}**"]
 
-    # Away team candidates
-    if "White Sox" in away:
-        lines.append("💥⚔️ Munetaka Murakami (LHB vs RHP) - elite raw power + platoon edge")
-        lines.append("💥 Luis Robert Jr. - speed + power combo")
-        lines.append("🔥 Andrew Benintendi - contact + pop")
-    elif "Twins" in away:
-        lines.append("💥 Young power bats to watch")
-        lines.append("🔥 Contact/power combo players")
-        lines.append("Check lineup for best matchups")
-    elif "Red Sox" in away:
-        lines.append("🏟️💥 Jarren Duran - speed + pop in GABP")
-        lines.append("🏟️ Willson Contreras - power in hitter-friendly park")
-        lines.append("💥 Roman Anthony - rising young power threat")
-    elif "Pirates" in away:
-        lines.append("❄️ Paul Skenes pitching limits upside")
-        lines.append("💥 Oneil Cruz - raw power potential")
-        lines.append("🔥 Bryan Reynolds - consistent contact")
-    else:
-        lines.append("Away side: Power bats to watch. Check lineup closer to first pitch.")
+    # Fetch fresh Statcast batting stats (current season)
+    try:
+        stats = pyb.batting_stats(date.today().year, qual=50)  # min 50 plate appearances
+        stats = stats[['player_name', 'team', 'barrel_percent', 'exit_velocity', 'hard_hit_percent', 'hr', 'pa']]
+        stats = stats.sort_values(by='barrel_percent', ascending=False)
+    except:
+        lines.append("⚠️ Could not load Statcast data right now.")
+        return "\n".join(lines)
 
-    # Home team candidates
-    if "Brewers" in home:
-        lines.append("Brewers side: Power bats to watch in home matchup")
-        lines.append("Check lineup for best candidates")
-        lines.append("Park + weather will matter")
-    elif "Orioles" in home:
-        lines.append("🏟️ Tyler O'Neill - Camden Yards boost")
-        lines.append("💥 Gunnar Henderson - young power")
-        lines.append("⚔️ Adley Rutschman - switch-hitter")
-    elif "Reds" in home:
-        lines.append("🏟️💥 Jarren Duran types in GABP - big park boost")
-        lines.append("Power bats thrive here")
-        lines.append("Check confirmed lineup")
-    elif "Dodgers" in home:
-        lines.append("💥 Will Smith - strong vs righties")
-        lines.append("💥 Shohei Ohtani - elite power")
-        lines.append("🔥 Freddie Freeman - veteran consistency")
-    elif "Mets" in home:
-        lines.append("Mets side: Limited upside vs Skenes")
-        lines.append("Power bats to watch if lineup favors them")
-        lines.append("Focus on Skenes strikeout upside")
+    # Simple team name mapping for 2026 rosters (pybaseball uses standard abbreviations)
+    team_map = {
+        "White Sox": "CHW", "Brewers": "MIL", "Twins": "MIN", "Orioles": "BAL",
+        "Red Sox": "BOS", "Reds": "CIN", "Dodgers": "LAD", "Pirates": "PIT",
+        "Mets": "NYM", "Yankees": "NYY", "Giants": "SF", "Athletics": "OAK",
+        "Blue Jays": "TOR", "Rockies": "COL", "Marlins": "MIA", "Royals": "KC",
+        "Braves": "ATL", "Angels": "LAA", "Astros": "HOU", "Tigers": "DET",
+        "Padres": "SD", "Guardians": "CLE", "Mariners": "SEA", "Diamondbacks": "ARI"
+    }
+
+    away_abbr = team_map.get(away.split()[-1], away)
+    home_abbr = team_map.get(home.split()[-1], home)
+
+    # Top 3 from away team
+    away_cands = stats[stats['team'] == away_abbr].head(3)
+    lines.append("**Away Side:**")
+    if away_cands.empty:
+        lines.append("No strong Statcast candidates yet.")
     else:
-        lines.append("Home side: Power bats to watch. Check park + weather closer to first pitch.")
+        for _, p in away_cands.iterrows():
+            lines.append(f"💥 {p['player_name']} - Barrel% {p['barrel_percent']:.1f}%")
+
+    # Top 3 from home team
+    home_cands = stats[stats['team'] == home_abbr].head(3)
+    lines.append("**Home Side:**")
+    if home_cands.empty:
+        lines.append("No strong Statcast candidates yet.")
+    else:
+        for _, p in home_cands.iterrows():
+            lines.append(f"💥 {p['player_name']} - Barrel% {p['barrel_percent']:.1f}%")
 
     return "\n".join(lines)
 
@@ -108,7 +106,7 @@ async def hr_today(ctx):
         title=f"🚀 HR Dinger Bot - Today's Slate ({today.strftime('%m/%d/%Y')}) 🔥",
         color=0xff4500
     )
-    embed.description = "Opening Day HR Watch! Matchup-based candidates with emoji stats."
+    embed.description = "Real Statcast-powered HR candidates (barrel%, exit velo, platoon). Updates every run."
     
     for game in games[:12]:
         embed.add_field(name="", value=get_hr_candidates(game), inline=False)
@@ -116,9 +114,9 @@ async def hr_today(ctx):
     embed.add_field(
         name="Suggested Parlays",
         value=(
-            "**Conservative 2-leg:** Tyler O'Neill + Will Smith\n"
-            "**3-leg Longshot:** O'Neill + Murakami + Duran (GABP)\n"
-            "**4-leg Super Longshot:** O'Neill + Murakami + Will Smith + Duran"
+            "**Conservative 2-leg:** Top Statcast bats from strong parks\n"
+            "**3-leg Longshot:** High barrel% + platoon edges\n"
+            "**4-leg Super Longshot:** Best Statcast matchups"
         ),
         inline=False
     )
