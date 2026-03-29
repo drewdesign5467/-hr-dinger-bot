@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 import statsapi
-import pybaseball as pyb
 from datetime import date, timedelta
 import os
 
@@ -16,87 +15,6 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
 
-EMOJI_LEGEND = {
-    "💥": "Raw Power / Hard Contact",
-    "⚔️": "Platoon Advantage",
-    "🏟️": "Hitter-Friendly Park Boost",
-    "🔥": "Strong Matchup",
-    "🎲": "Longshot / High Variance"
-}
-
-@bot.command(name="info")
-async def info(ctx):
-    embed = discord.Embed(title="HR Dinger Bot Emoji Legend", color=0xff4500)
-    embed.description = "Emoji guide + how predictions work:"
-    for emoji, meaning in EMOJI_LEGEND.items():
-        embed.add_field(name=emoji, value=meaning, inline=False)
-    embed.add_field(
-        name="📌 Prediction Method",
-        value="Uses live Statcast data (barrel%, exit velo, platoon) + probable pitchers.\nFalls back to 2025 stats on Opening Day.",
-        inline=False
-    )
-    await ctx.send(embed=embed)
-
-@bot.command(name="howto")
-async def howto(ctx):
-    embed = discord.Embed(title="HR Dinger Bot Commands", color=0xff4500)
-    embed.description = "Here's what each command does:"
-    embed.add_field(name="!hrtoday", value="Shows today's slate with real Statcast predictions", inline=False)
-    embed.add_field(name="!hrtomorrow", value="Shows tomorrow's slate", inline=False)
-    embed.add_field(name="!hrslate", value="Alias for !hrtomorrow", inline=False)
-    embed.add_field(name="!info", value="Shows emoji legend + prediction method", inline=False)
-    embed.add_field(name="!howto", value="Shows this help message", inline=False)
-    await ctx.send(embed=embed)
-
-def get_hr_candidates(game):
-    away = game.get('away_name', 'TBD')
-    home = game.get('home_name', 'TBD')
-    lines = [f"**{away} @ {home}**"]
-
-    # Try current year, fallback to 2025
-    year = date.today().year
-    try:
-        stats = pyb.batting_stats(year, qual=1)
-    except:
-        try:
-            stats = pyb.batting_stats(2025, qual=50)
-        except:
-            lines.append("⚠️ Statcast data not available yet. Run again soon.")
-            return "\n".join(lines)
-
-    stats = stats[['player_name', 'team', 'barrel_percent']]
-    stats = stats.sort_values(by='barrel_percent', ascending=False)
-
-    team_map = {
-        "White Sox": "CHW", "Brewers": "MIL", "Twins": "MIN", "Orioles": "BAL",
-        "Red Sox": "BOS", "Reds": "CIN", "Dodgers": "LAD", "Pirates": "PIT",
-        "Mets": "NYM", "Yankees": "NYY", "Giants": "SF", "Athletics": "OAK",
-        "Blue Jays": "TOR", "Rockies": "COL", "Marlins": "MIA", "Royals": "KC",
-        "Braves": "ATL", "Angels": "LAA", "Astros": "HOU", "Tigers": "DET",
-        "Padres": "SD", "Guardians": "CLE", "Mariners": "SEA", "Diamondbacks": "ARI"
-    }
-
-    away_abbr = team_map.get(away.split()[-1], away)
-    home_abbr = team_map.get(home.split()[-1], home)
-
-    lines.append("**Away Side (Top 3):**")
-    away_cands = stats[stats['team'] == away_abbr].head(3)
-    if away_cands.empty:
-        lines.append("No strong candidates yet.")
-    else:
-        for _, p in away_cands.iterrows():
-            lines.append(f"💥 {p['player_name']} - Barrel% {p['barrel_percent']:.1f}%")
-
-    lines.append("**Home Side (Top 3):**")
-    home_cands = stats[stats['team'] == home_abbr].head(3)
-    if home_cands.empty:
-        lines.append("No strong candidates yet.")
-    else:
-        for _, p in home_cands.iterrows():
-            lines.append(f"💥 {p['player_name']} - Barrel% {p['barrel_percent']:.1f}%")
-
-    return "\n".join(lines)
-
 @bot.command(name="hrtoday")
 async def hr_today(ctx):
     today = date.today()
@@ -106,22 +24,31 @@ async def hr_today(ctx):
         title=f"🚀 HR Dinger Bot - Today's Slate ({today.strftime('%m/%d/%Y')}) 🔥",
         color=0xff4500
     )
-    embed.description = "Real Statcast-powered HR candidates (barrel%, exit velo, platoon). Updates every run."
-    
+    embed.description = "Opening Day HR Watch! 3 candidates per team."
+
     for game in games[:12]:
-        embed.add_field(name="", value=get_hr_candidates(game), inline=False)
-    
+        away = game.get('away_name', 'TBD')
+        home = game.get('home_name', 'TBD')
+        value = f"**{away} @ {home}**\n\n**Away Side:**\n1. Power bat 1\n2. Power bat 2\n3. Power bat 3\n\n**Home Side:**\n1. Power bat 1\n2. Power bat 2\n3. Power bat 3\n\nRun again closer to first pitch when lineups drop."
+        embed.add_field(name="", value=value, inline=False)
+
     embed.add_field(
         name="Suggested Parlays",
         value=(
-            "**Conservative 2-leg:** Top barrel% bats from strong parks\n"
-            "**3-leg Longshot:** High barrel% + platoon edges\n"
-            "**4-leg Super Longshot:** Best Statcast matchups"
+            "**Conservative 2-leg:** Tyler O'Neill + Will Smith\n"
+            "**3-leg Longshot:** O'Neill + Murakami + Duran\n"
+            "**4-leg Super Longshot:** O'Neill + Murakami + Will Smith + Duran"
         ),
         inline=False
     )
     
-    embed.set_footer(text="Type !info or !howto for help • Run !hrtoday again later when lineups drop!")
+    embed.set_footer(text="Type !info for help • Run !hrtoday again later!")
+    await ctx.send(embed=embed)
+
+@bot.command(name="info")
+async def info(ctx):
+    embed = discord.Embed(title="HR Dinger Bot Info", color=0xff4500)
+    embed.description = "Simple fast version that always works.\nOnce this responds, we can add the real Statcast data."
     await ctx.send(embed=embed)
 
 @bot.command(name="hrtomorrow")
@@ -140,7 +67,6 @@ async def hr_tomorrow(ctx):
         home = game.get('home_name', 'TBD')
         embed.add_field(name=f"{away} @ {home}", value="HR watch loading...", inline=False)
     
-    embed.set_footer(text="Type !info or !howto for help")
     await ctx.send(embed=embed)
 
 @bot.command(name="hrslate")
