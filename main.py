@@ -163,4 +163,4 @@ async def hr_tomorrow(ctx):
 async def hr_slate(ctx):
     await hr_tomorrow(ctx)
 
-bot.run(TOKEN)
+bot.run(TOKEN) 
