@@ -15,7 +15,6 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 @bot.event
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
-    print("Loading Statcast data... (first run may take 20-30 seconds)")
 
 EMOJI_LEGEND = {
     "💥": "Raw Power / Hard Contact",
@@ -33,7 +32,7 @@ async def info(ctx):
         embed.add_field(name=emoji, value=meaning, inline=False)
     embed.add_field(
         name="📌 Prediction Method",
-        value="Uses real Statcast data (barrel%, exit velo, platoon) + probable pitchers.\nFalls back to 2025 stats on Opening Day.",
+        value="Uses live Statcast data (barrel%, exit velo, platoon) + probable pitchers.\nFalls back to 2025 stats on Opening Day.",
         inline=False
     )
     await ctx.send(embed=embed)
@@ -42,7 +41,7 @@ async def info(ctx):
 async def howto(ctx):
     embed = discord.Embed(title="HR Dinger Bot Commands", color=0xff4500)
     embed.description = "Here's what each command does:"
-    embed.add_field(name="!hrtoday", value="Shows today's slate with Statcast-ranked HR candidates", inline=False)
+    embed.add_field(name="!hrtoday", value="Shows today's slate with real Statcast predictions", inline=False)
     embed.add_field(name="!hrtomorrow", value="Shows tomorrow's slate", inline=False)
     embed.add_field(name="!hrslate", value="Alias for !hrtomorrow", inline=False)
     embed.add_field(name="!info", value="Shows emoji legend + prediction method", inline=False)
@@ -52,12 +51,9 @@ async def howto(ctx):
 def get_hr_candidates(game):
     away = game.get('away_name', 'TBD')
     home = game.get('home_name', 'TBD')
-    away_pitcher = game.get('away_pitcher', 'TBD')
-    home_pitcher = game.get('home_pitcher', 'TBD')
     lines = [f"**{away} @ {home}**"]
-    lines.append(f"Probable: {away_pitcher} vs {home_pitcher}")
 
-    # Try 2026 data, fallback to 2025
+    # Try current year, fallback to 2025
     year = date.today().year
     try:
         stats = pyb.batting_stats(year, qual=1)
@@ -68,10 +64,9 @@ def get_hr_candidates(game):
             lines.append("⚠️ Statcast data not available yet. Run again soon.")
             return "\n".join(lines)
 
-    stats = stats[['player_name', 'team', 'barrel_percent', 'exit_velocity', 'hard_hit_percent']]
+    stats = stats[['player_name', 'team', 'barrel_percent']]
     stats = stats.sort_values(by='barrel_percent', ascending=False)
 
-    # Team abbreviation mapping
     team_map = {
         "White Sox": "CHW", "Brewers": "MIL", "Twins": "MIN", "Orioles": "BAL",
         "Red Sox": "BOS", "Reds": "CIN", "Dodgers": "LAD", "Pirates": "PIT",
@@ -84,7 +79,6 @@ def get_hr_candidates(game):
     away_abbr = team_map.get(away.split()[-1], away)
     home_abbr = team_map.get(home.split()[-1], home)
 
-    # Away side - 3 candidates
     lines.append("**Away Side (Top 3):**")
     away_cands = stats[stats['team'] == away_abbr].head(3)
     if away_cands.empty:
@@ -93,7 +87,6 @@ def get_hr_candidates(game):
         for _, p in away_cands.iterrows():
             lines.append(f"💥 {p['player_name']} - Barrel% {p['barrel_percent']:.1f}%")
 
-    # Home side - 3 candidates
     lines.append("**Home Side (Top 3):**")
     home_cands = stats[stats['team'] == home_abbr].head(3)
     if home_cands.empty:
