@@ -4,6 +4,7 @@ import statsapi
 import pybaseball as pyb
 from datetime import date, timedelta
 import os
+import threading
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -12,9 +13,28 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 
+# Global cache for Statcast data
+STATCAST_CACHE = None
+
+def load_statcast_data():
+    global STATCAST_CACHE
+    print("Loading Statcast data in background...")
+    year = date.today().year
+    try:
+        STATCAST_CACHE = pyb.batting_stats(year, qual=1)
+    except:
+        try:
+            STATCAST_CACHE = pyb.batting_stats(2025, qual=50)  # fallback to last full season
+        except:
+            STATCAST_CACHE = None
+            print("Could not load Statcast data")
+    print("Statcast data loaded and cached.")
+
 @bot.event
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
+    # Start data load in background so commands stay fast
+    threading.Thread(target=load_statcast_data, daemon=True).start()
 
 EMOJI_LEGEND = {
     "💥": "Raw Power / Hard Contact",
@@ -37,6 +57,10 @@ async def info(ctx):
     )
     await ctx.send(embed=embed)
 
+@bot.command(name="ping")
+async def ping(ctx):
+    await ctx.send("✅ Bot is responsive! `!hrtoday` should work now.")
+
 @bot.command(name="howto")
 async def howto(ctx):
     embed = discord.Embed(title="HR Dinger Bot Commands", color=0xff4500)
@@ -46,6 +70,7 @@ async def howto(ctx):
     embed.add_field(name="!hrslate", value="Alias for !hrtomorrow", inline=False)
     embed.add_field(name="!info", value="Shows emoji legend + prediction method", inline=False)
     embed.add_field(name="!howto", value="Shows this help message", inline=False)
+    embed.add_field(name="!ping", value="Test if the bot is responsive", inline=False)
     await ctx.send(embed=embed)
 
 def get_hr_candidates(game):
@@ -53,18 +78,11 @@ def get_hr_candidates(game):
     home = game.get('home_name', 'TBD')
     lines = [f"**{away} @ {home}**"]
 
-    # Try current year, fallback to 2025
-    year = date.today().year
-    try:
-        stats = pyb.batting_stats(year, qual=1)
-    except:
-        try:
-            stats = pyb.batting_stats(2025, qual=50)
-        except:
-            lines.append("⚠️ Statcast data not available yet. Run again soon.")
-            return "\n".join(lines)
+    if STATCAST_CACHE is None:
+        lines.append("⚠️ Statcast data still loading. Run !hrtoday again in a few seconds.")
+        return "\n".join(lines)
 
-    stats = stats[['player_name', 'team', 'barrel_percent']]
+    stats = STATCAST_CACHE[['player_name', 'team', 'barrel_percent']]
     stats = stats.sort_values(by='barrel_percent', ascending=False)
 
     team_map = {
