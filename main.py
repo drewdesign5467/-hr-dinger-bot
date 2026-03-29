@@ -13,7 +13,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-# Global cache for Statcast data
+# Global cache
 STATCAST_CACHE = None
 
 def load_statcast_data():
@@ -24,16 +24,14 @@ def load_statcast_data():
         STATCAST_CACHE = pyb.batting_stats(year, qual=1)
     except:
         try:
-            STATCAST_CACHE = pyb.batting_stats(2025, qual=50)  # fallback to last full season
+            STATCAST_CACHE = pyb.batting_stats(2025, qual=50)
         except:
             STATCAST_CACHE = None
-            print("Could not load Statcast data")
     print("Statcast data loaded and cached.")
 
 @bot.event
 async def on_ready():
     print(f"✅ HR Dinger Bot is online as {bot.user}")
-    # Start data load in background so commands stay fast
     threading.Thread(target=load_statcast_data, daemon=True).start()
 
 EMOJI_LEGEND = {
@@ -47,11 +45,11 @@ EMOJI_LEGEND = {
 @bot.command(name="info")
 async def info(ctx):
     embed = discord.Embed(title="HR Dinger Bot Emoji Legend", color=0xff4500)
-    embed.description = "Emoji guide + how predictions work:"
+    embed.description = "Emoji guide + prediction method:"
     for emoji, meaning in EMOJI_LEGEND.items():
         embed.add_field(name=emoji, value=meaning, inline=False)
     embed.add_field(
-        name="📌 Prediction Method",
+        name="📌 How it works",
         value="Live Statcast data (barrel%, exit velo, platoon) + probable pitchers.\nFalls back to 2025 stats on Opening Day.",
         inline=False
     )
@@ -59,7 +57,7 @@ async def info(ctx):
 
 @bot.command(name="ping")
 async def ping(ctx):
-    await ctx.send("✅ Bot is responsive! `!hrtoday` should work now.")
+    await ctx.send("✅ Bot is responsive!")
 
 @bot.command(name="howto")
 async def howto(ctx):
@@ -79,7 +77,7 @@ def get_hr_candidates(game):
     lines = [f"**{away} @ {home}**"]
 
     if STATCAST_CACHE is None:
-        lines.append("⚠️ Statcast data still loading. Run !hrtoday again in a few seconds.")
+        lines.append("⚠️ Statcast data still loading. Try !hrtoday again in 10 seconds.")
         return "\n".join(lines)
 
     stats = STATCAST_CACHE[['player_name', 'team', 'barrel_percent']]
